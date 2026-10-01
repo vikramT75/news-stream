@@ -2,6 +2,7 @@ services:
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: rag-sqlserver
+    restart: always
     environment:
       - ACCEPT_EULA=Y
       - MSSQL_SA_PASSWORD=YourStrong!Passw0rd
@@ -14,6 +15,7 @@ services:
   zookeeper:
     image: confluentinc/cp-zookeeper:7.6.0
     container_name: rag-zookeeper
+    restart: always
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
@@ -21,6 +23,7 @@ services:
   kafka:
     image: confluentinc/cp-kafka:7.6.0
     container_name: rag-kafka
+    restart: always
     depends_on:
       - zookeeper
     ports:
@@ -35,12 +38,19 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:29092"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
 
   rag-api:
     image: rag-api
     build:
       context: ./Rag.Api
     container_name: rag-api
+    restart: always
     ports:
       - "5000:8080"
     environment:
@@ -49,22 +59,27 @@ services:
       - Ollama__Endpoint=${OLLAMA_ENDPOINT:-http://host.docker.internal:11434/v1/}
       - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
     depends_on:
-      - sqlserver
-      - kafka
+      sqlserver:
+        condition: service_started
+      kafka:
+        condition: service_healthy
 
   rag-producer:
     image: rag-producer
     build:
       context: ./Rag.Producer
     container_name: rag-producer
+    restart: always
     environment:
       - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
     depends_on:
-      - kafka
+      kafka:
+        condition: service_healthy
       
   frontend:
     image: nginx:alpine
     container_name: rag-frontend
+    restart: always
     ports:
       - "80:80"
     volumes:
