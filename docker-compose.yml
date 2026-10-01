@@ -6,12 +6,12 @@ services:
     container_name: rag-sqlserver
     environment:
       - ACCEPT_EULA=Y
-      - SA_PASSWORD=YourStrong!Passw0rd
+      - MSSQL_SA_PASSWORD=YourStrong!Passw0rd
       - MSSQL_PID=Developer
     ports:
       - "1433:1433"
     volumes:
-      - sqlserver-data:/var/opt/mssql
+      - sqlserver-data-new:/var/opt/mssql
 
 volumes:
-  sqlserver-data:
+  sqlserver-data-new:
