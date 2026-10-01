@@ -18,8 +18,13 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           # This script runs directly on your AWS server
           script: |
+            # Check if the repository exists, if not, clone it!
+            if [ ! -d "$HOME/RAG" ]; then
+              git clone https://github.com/${{ github.repository }} $HOME/RAG
+            fi
+            
             # Navigate to the repository folder
-            cd ~/RAG
+            cd $HOME/RAG
             
             # Pull the latest changes from GitHub
             git pull origin master
