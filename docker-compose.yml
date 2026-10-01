@@ -12,14 +12,14 @@ services:
       - sqlserver-data-new:/var/opt/mssql
 
   zookeeper:
-    image: confluentinc/cp-zookeeper:7.3.0
+    image: confluentinc/cp-zookeeper:7.6.0
     container_name: rag-zookeeper
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
 
   kafka:
-    image: confluentinc/cp-kafka:7.3.0
+    image: confluentinc/cp-kafka:7.6.0
     container_name: rag-kafka
     depends_on:
       - zookeeper
