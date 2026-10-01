@@ -5,7 +5,8 @@ using Confluent.Kafka;
 
 Console.WriteLine("Starting Global News Kafka Producer...");
 
-var config = new ProducerConfig { BootstrapServers = "localhost:9092" };
+var bootstrapServers = Environment.GetEnvironmentVariable("KAFKA_BOOTSTRAP_SERVERS") ?? "localhost:9092";
+var config = new ProducerConfig { BootstrapServers = bootstrapServers };
 using var producer = new ProducerBuilder<Null, string>(config).Build();
 
 var seenUrls = new HashSet<string>();

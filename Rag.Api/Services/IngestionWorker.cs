@@ -30,10 +30,12 @@ namespace Rag.Api.Services
                 var embeddingGenerator = _kernel.GetRequiredService<ITextEmbeddingGenerationService>();
                 var connectionString = _configuration.GetConnectionString("DefaultConnection");
 
+                var bootstrapServers = Environment.GetEnvironmentVariable("KAFKA_BOOTSTRAP_SERVERS") ?? "localhost:9092";
+                
                 var consumerConfig = new ConsumerConfig
                 {
-                    BootstrapServers = "localhost:9092",
-                    GroupId = "rag-api-consumer-group",
+                    BootstrapServers = bootstrapServers,
+                    GroupId = "rag-api-consumer-group-" + Guid.NewGuid().ToString(),
                     AutoOffsetReset = AutoOffsetReset.Earliest
                 };
 
@@ -78,6 +80,10 @@ namespace Rag.Api.Services
                         catch (ConsumeException e)
                         {
                             _logger.LogError($"Consume error: {e.Error.Reason}");
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError($"General error during ingestion (likely Ollama crash): {ex.Message}");
                         }
                     }
                 }
