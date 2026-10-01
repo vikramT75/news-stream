@@ -1,0 +1,28 @@
+name: Deploy to AWS EC2
+
+on:
+  push:
+    branches:
+      - master
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to EC2 via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          # This script runs directly on your AWS server
+          script: |
+            # Navigate to the repository folder
+            cd ~/RAG
+            
+            # Pull the latest changes from GitHub
+            git pull origin master
+            
+            # Rebuild and restart the Docker containers in the background
+            sudo docker compose up -d --build
