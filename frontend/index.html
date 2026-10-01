@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Streaming RAG with Temporal Decay</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f4f9; padding: 20px; display: flex; justify-content: center; }
+        .chat-container { width: 100%; max-width: 800px; background: #fff; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); display: flex; flex-direction: column; height: 85vh; }
+        .chat-header { background: #0078d4; color: white; padding: 15px; border-radius: 8px 8px 0 0; text-align: center; }
+        .chat-messages { flex-grow: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
+        .message { padding: 12px 18px; border-radius: 6px; max-width: 80%; line-height: 1.5; word-wrap: break-word; }
+        .user { background: #0078d4; color: white; align-self: flex-end; border-bottom-right-radius: 0; }
+        .bot { background: #e5e5e5; color: #333; align-self: flex-start; border-bottom-left-radius: 0; }
+        .chat-input { padding: 15px; border-top: 1px solid #ddd; display: flex; gap: 10px; }
+        input { flex-grow: 1; padding: 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; outline: none; }
+        input:focus { border-color: #0078d4; }
+        button { background: #0078d4; color: white; border: none; padding: 0 20px; border-radius: 4px; cursor: pointer; font-size: 16px; transition: 0.2s; }
+        button:hover { background: #005a9e; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <h2>Financial News RAG</h2>
+            <small>Powered by .NET 8, Semantic Kernel, and SQL Server Temporal Decay</small>
+        </div>
+        <div class="chat-messages" id="chat-messages">
+            <div class="message bot">
+                <strong>System:</strong> I am connected to a simulated live feed of financial news. Older news is penalized by a temporal decay algorithm. Ask me a question!
+            </div>
+        </div>
+        <div class="chat-input">
+            <input type="text" id="prompt-input" placeholder="e.g. What's the latest news on Microsoft?" autocomplete="off" />
+            <button id="send-btn">Send</button>
+        </div>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
