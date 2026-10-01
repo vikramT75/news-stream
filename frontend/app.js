@@ -19,7 +19,8 @@ async function sendMessage() {
     const botMessageDiv = appendMessage('bot', '');
 
     try {
-        const response = await fetch('http://localhost:5000/api/chat/stream', {
+        const apiUrl = `http://${window.location.hostname}:5000/api/chat/stream`;
+        const response = await fetch(apiUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ prompt: prompt })
