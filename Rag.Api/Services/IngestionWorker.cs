@@ -1,5 +1,6 @@
 #pragma warning disable CS0618
 using System.Text.Json;
+using Confluent.Kafka;
 using Dapper;
 using Microsoft.Data.SqlClient;
 using Microsoft.SemanticKernel;
@@ -13,16 +14,6 @@ namespace Rag.Api.Services
         private readonly IConfiguration _configuration;
         private readonly Kernel _kernel;
 
-        // Mock data feed arrays
-        private readonly string[] _companies = { "Microsoft", "Apple", "Nvidia", "Tesla", "Amazon" };
-        private readonly string[] _events = { 
-            "beats earnings expectations by 15%.", 
-            "announces revolutionary new AI product.", 
-            "faces severe supply chain delays in Asia.", 
-            "CEO unexpectedly steps down.", 
-            "acquires promising startup for $2B." 
-        };
-
         public IngestionWorker(ILogger<IngestionWorker> logger, IConfiguration configuration, Kernel kernel)
         {
             _logger = logger;
@@ -30,56 +21,73 @@ namespace Rag.Api.Services
             _kernel = kernel;
         }
 
-        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        protected override Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            _logger.LogInformation("Ingestion Worker started. Simulating live financial feed...");
+            _logger.LogInformation("Kafka Ingestion Worker started. Listening to 'global-news' topic...");
 
-
-            var embeddingGenerator = _kernel.GetRequiredService<ITextEmbeddingGenerationService>();
-            var connectionString = _configuration.GetConnectionString("DefaultConnection");
-            var rand = new Random();
-
-            while (!stoppingToken.IsCancellationRequested)
+            _ = Task.Run(async () =>
             {
-                // 1. Generate Fake Live News
-                var company = _companies[rand.Next(_companies.Length)];
-                var eventStr = _events[rand.Next(_events.Length)];
-                var content = $"[{DateTime.UtcNow:HH:mm:ss}] BREAKING: {company} {eventStr}";
-                
-                _logger.LogInformation($"Ingesting: {content}");
+                var embeddingGenerator = _kernel.GetRequiredService<ITextEmbeddingGenerationService>();
+                var connectionString = _configuration.GetConnectionString("DefaultConnection");
+
+                var consumerConfig = new ConsumerConfig
+                {
+                    BootstrapServers = "localhost:9092",
+                    GroupId = "rag-api-consumer-group",
+                    AutoOffsetReset = AutoOffsetReset.Earliest
+                };
+
+                using var consumer = new ConsumerBuilder<Ignore, string>(consumerConfig).Build();
+                consumer.Subscribe("global-news");
 
                 try
                 {
-                    // 2. Generate Vector Embedding via Semantic Kernel
-                    var embedding = await embeddingGenerator.GenerateEmbeddingAsync(content, cancellationToken: stoppingToken);
-                    
-                    // Convert float[] to JSON array string for our SQL Server storage
-                    var embeddingJson = JsonSerializer.Serialize(embedding.ToArray());
-
-                    // 3. Save to SQL Server via Dapper
-                    using var connection = new SqlConnection(connectionString);
-                    var query = @"
-                        INSERT INTO DocumentChunks (Content, Embedding, Source, IngestionTime) 
-                        VALUES (@Content, @Embedding, @Source, @IngestionTime)";
-
-                    await connection.ExecuteAsync(query, new
+                    while (!stoppingToken.IsCancellationRequested)
                     {
-                        Content = content,
-                        Embedding = embeddingJson,
-                        Source = "Simulated Bloomberg Feed",
-                        IngestionTime = DateTime.UtcNow
-                    });
-                    
-                    _logger.LogInformation("Successfully saved vector to database.");
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError($"Failed to ingest chunk: {ex.Message}");
-                }
+                        try
+                        {
+                            var consumeResult = consumer.Consume(stoppingToken);
+                            if (consumeResult == null) continue;
 
-                // Wait 20 seconds before generating the next news item
-                await Task.Delay(TimeSpan.FromSeconds(20), stoppingToken);
-            }
+                            var messageJson = consumeResult.Message.Value;
+                            using var doc = JsonDocument.Parse(messageJson);
+                            var content = doc.RootElement.GetProperty("Content").GetString() ?? "";
+                            var source = doc.RootElement.GetProperty("Source").GetString() ?? "Unknown";
+                            var ingestionTime = DateTime.UtcNow;
+
+                            _logger.LogInformation($"Consumed from Kafka: {content}");
+
+                            var embedding = await embeddingGenerator.GenerateEmbeddingAsync(content, cancellationToken: stoppingToken);
+                            var embeddingJson = JsonSerializer.Serialize(embedding.ToArray());
+
+                            using var connection = new SqlConnection(connectionString);
+                            var query = @"
+                                INSERT INTO DocumentChunks (Content, Embedding, Source, IngestionTime) 
+                                VALUES (@Content, @Embedding, @Source, @IngestionTime)";
+
+                            await connection.ExecuteAsync(query, new
+                            {
+                                Content = content,
+                                Embedding = embeddingJson,
+                                Source = source,
+                                IngestionTime = ingestionTime
+                            });
+                            
+                            _logger.LogInformation("Successfully embedded and saved to database.");
+                        }
+                        catch (ConsumeException e)
+                        {
+                            _logger.LogError($"Consume error: {e.Error.Reason}");
+                        }
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    consumer.Close();
+                }
+            }, stoppingToken);
+
+            return Task.CompletedTask;
         }
     }
 }

@@ -27,7 +27,6 @@ namespace Rag.Api.Controllers
         [HttpPost("stream")]
         public async Task StreamChat([FromBody] ChatRequest request)
         {
-            // Set headers for Server-Sent Events (SSE)
             Response.Headers.Append("Content-Type", "text/event-stream");
             Response.Headers.Append("Cache-Control", "no-cache");
             Response.Headers.Append("Connection", "keep-alive");
@@ -40,20 +39,18 @@ namespace Rag.Api.Controllers
 
             try
             {
-                // 1. Embed the User's Query using Ollama
                 var queryEmbedding = await embeddingGenerator.GenerateEmbeddingAsync(request.Prompt);
                 var queryEmbeddingJson = JsonSerializer.Serialize(queryEmbedding.ToArray());
 
-                // 2. Perform Time-Decay Vector Search in SQL Server
                 using var connection = new SqlConnection(connectionString);
-                var sql = "EXEC sp_SearchWithTemporalDecay @QueryVector = @QueryVector, @TopK = 3";
+                var sql = "EXEC sp_SearchWithTemporalDecay @QueryVector = @QueryVector, @TopK = 10";
                 var contextChunks = await connection.QueryAsync<dynamic>(sql, new { QueryVector = queryEmbeddingJson });
 
                 var contextText = string.Join("\n\n", contextChunks.Select(c => $"[Time: {c.IngestionTime:HH:mm:ss} | Source: {c.Source}]\n{c.Content}"));
 
-                // 3. Construct the Prompt
-                var systemPrompt = $@"You are a real-time financial assistant. 
-Answer the user's question using ONLY the latest information provided below.
+                var systemPrompt = $@"You are a real-time global news assistant. 
+Answer the user's question in a highly detailed, comprehensive manner using ONLY the latest information provided below.
+If multiple articles match, synthesize them into a thorough, multi-paragraph report. Do not hallucinate data outside the context.
 Because we apply a temporal decay algorithm, the context below is guaranteed to be the freshest and most relevant.
 If the context does not contain the answer, say 'I don't have enough recent information to answer that.'
 
@@ -64,12 +61,10 @@ If the context does not contain the answer, say 'I don't have enough recent info
                 var chatHistory = new ChatHistory(systemPrompt);
                 chatHistory.AddUserMessage(request.Prompt);
 
-                // 4. Stream the Response to the UI
                 await foreach (var chunk in chatCompletion.GetStreamingChatMessageContentsAsync(chatHistory))
                 {
                     if (chunk.Content != null)
                     {
-                        // Clean up newlines so it doesn't break the SSE protocol
                         var safeContent = chunk.Content.Replace("\n", "<br>");
                         await Response.WriteAsync($"data: {safeContent}\n\n");
                         await Response.Body.FlushAsync();
