@@ -16,7 +16,8 @@ async function sendMessage() {
     inputField.disabled = true;
     sendBtn.disabled = true;
 
-    const botMessageDiv = appendMessage('bot', '');
+    const botMessageContent = appendMessage('bot', '');
+    let fullBotMessage = '';
 
     try {
         const apiUrl = `http://${window.location.hostname}:5000/api/chat/stream`;
@@ -43,13 +44,24 @@ async function sendMessage() {
                     const data = line.substring(6);
                     if (data === '[DONE]') break;
                     
-                    botMessageDiv.innerHTML += data;
-                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                    // Format newline literals correctly if they're escaped by the backend
+                    fullBotMessage += data.replace(/\\n/g, '\n');
+                    
+                    if (typeof marked !== 'undefined') {
+                        botMessageContent.innerHTML = marked.parse(fullBotMessage);
+                    } else {
+                        botMessageContent.innerText = fullBotMessage;
+                    }
+                    
+                    const isNearBottom = messagesContainer.scrollHeight - messagesContainer.scrollTop - messagesContainer.clientHeight < 100;
+                    if (isNearBottom) {
+                        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                    }
                 }
             }
         }
     } catch (error) {
-        botMessageDiv.innerHTML += `<br><span style="color:red; font-size:0.9em;">[Error connecting to API. Make sure backend is running.]</span>`;
+        botMessageContent.innerHTML += `<br><span style="color:red; font-size:0.9em;">[Error connecting to API. Make sure backend is running.]</span>`;
     } finally {
         inputField.disabled = false;
         sendBtn.disabled = false;
@@ -60,8 +72,10 @@ async function sendMessage() {
 function appendMessage(sender, text) {
     const div = document.createElement('div');
     div.className = `message ${sender}`;
-    div.innerHTML = sender === 'bot' ? `<strong>AI:</strong> ${text}` : `<strong>You:</strong> ${text}`;
+    const header = sender === 'bot' ? '<strong>AI:</strong> ' : '<strong>You:</strong> ';
+    const contentHtml = `<div class="msg-content">${text}</div>`;
+    div.innerHTML = header + contentHtml;
     messagesContainer.appendChild(div);
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    return div;
+    return div.querySelector('.msg-content');
 }

@@ -98,6 +98,12 @@
         background: #ccc;
         cursor: not-allowed;
       }
+      .msg-content p {
+        margin: 0 0 10px 0;
+      }
+      .msg-content p:last-child {
+        margin-bottom: 0;
+      }
     </style>
   </head>
   <body>
@@ -126,6 +132,7 @@
         <button id="send-btn">Send</button>
       </div>
     </div>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="app.js?v=2"></script>
   </body>
 </html>
