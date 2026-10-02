@@ -1,42 +1,131 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streaming RAG with Temporal Decay</title>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Global News Stream</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f4f9; padding: 10px; display: flex; justify-content: center; height: 95vh; margin: 0; box-sizing: border-box; }
-        .chat-container { width: 100%; max-width: 1200px; background: #fff; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); display: flex; flex-direction: column; height: 100%; }
-        .chat-header { background: #0078d4; color: white; padding: 10px; border-radius: 8px 8px 0 0; text-align: center; }
-        .chat-header h2 { margin: 5px 0; font-size: 1.2rem; }
-        .chat-messages { flex-grow: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
-        .message { padding: 10px 14px; border-radius: 6px; max-width: 85%; font-size: 14px; line-height: 1.4; word-wrap: break-word; }
-        .user { background: #0078d4; color: white; align-self: flex-end; border-bottom-right-radius: 0; }
-        .bot { background: #e5e5e5; color: #333; align-self: flex-start; border-bottom-left-radius: 0; }
-        .chat-input { padding: 10px; border-top: 1px solid #ddd; display: flex; gap: 10px; }
-        input { flex-grow: 1; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; outline: none; }
-        input:focus { border-color: #0078d4; }
-        button { background: #0078d4; color: white; border: none; padding: 0 20px; border-radius: 4px; cursor: pointer; font-size: 14px; transition: 0.2s; }
-        button:hover { background: #005a9e; }
-        button:disabled { background: #ccc; cursor: not-allowed; }
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: #f4f4f9;
+        padding: 10px;
+        display: flex;
+        justify-content: center;
+        height: 95vh;
+        margin: 0;
+        box-sizing: border-box;
+      }
+      .chat-container {
+        width: 100%;
+        max-width: 1200px;
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+      }
+      .chat-header {
+        background: #0078d4;
+        color: white;
+        padding: 10px;
+        border-radius: 8px 8px 0 0;
+        text-align: center;
+      }
+      .chat-header h2 {
+        margin: 5px 0;
+        font-size: 1.2rem;
+      }
+      .chat-messages {
+        flex-grow: 1;
+        padding: 15px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .message {
+        padding: 10px 14px;
+        border-radius: 6px;
+        max-width: 85%;
+        font-size: 14px;
+        line-height: 1.4;
+        word-wrap: break-word;
+      }
+      .user {
+        background: #0078d4;
+        color: white;
+        align-self: flex-end;
+        border-bottom-right-radius: 0;
+      }
+      .bot {
+        background: #e5e5e5;
+        color: #333;
+        align-self: flex-start;
+        border-bottom-left-radius: 0;
+      }
+      .chat-input {
+        padding: 10px;
+        border-top: 1px solid #ddd;
+        display: flex;
+        gap: 10px;
+      }
+      input {
+        flex-grow: 1;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 14px;
+        outline: none;
+      }
+      input:focus {
+        border-color: #0078d4;
+      }
+      button {
+        background: #0078d4;
+        color: white;
+        border: none;
+        padding: 0 20px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: 0.2s;
+      }
+      button:hover {
+        background: #005a9e;
+      }
+      button:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div class="chat-container">
-        <div class="chat-header">
-            <h2>Global News RAG</h2>
-            <small>Powered by .NET 8, Semantic Kernel, and SQL Server Temporal Decay</small>
+      <div class="chat-header">
+        <h2>Global News Stream</h2>
+        <small
+          >Powered by .NET 8, Semantic Kernel and SQL Server Temporal
+          Decay</small
+        >
+      </div>
+      <div class="chat-messages" id="chat-messages">
+        <div class="message bot">
+          <strong>System:</strong> I am connected to a live feed of global
+          internet news (BBC, NYT, CNBC). Older news is penalized by a temporal
+          decay algorithm. Ask me a question!
         </div>
-        <div class="chat-messages" id="chat-messages">
-            <div class="message bot">
-                <strong>System:</strong> I am connected to a live feed of global internet news (BBC, NYT, CNBC). Older news is penalized by a temporal decay algorithm. Ask me a question!
-            </div>
-        </div>
-        <div class="chat-input">
-            <input type="text" id="prompt-input" placeholder="e.g. What's the latest tech news?" autocomplete="off" />
-            <button id="send-btn">Send</button>
-        </div>
+      </div>
+      <div class="chat-input">
+        <input
+          type="text"
+          id="prompt-input"
+          placeholder="e.g. What's the latest tech news?"
+          autocomplete="off"
+        />
+        <button id="send-btn">Send</button>
+      </div>
     </div>
     <script src="app.js?v=2"></script>
-</body>
+  </body>
 </html>
