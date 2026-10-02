@@ -4,26 +4,26 @@ A distributed Hybrid Cloud application that streams live global news into a Kafk
 
 During query execution, the system retrieves the most relevant and recent news articles to construct accurate, context-aware responses.
 
-## Architecture Overview (Hybrid Cloud / Edge AI)
+## Architecture Overview: Hybrid Cloud and Edge AI
 
 This project leverages a hybrid deployment model to optimize computational costs while maintaining global availability:
-- **Cloud Node (AWS EC2):** Hosts the Client Interface, API, Kafka Cluster and SQL Server backend.
-- **Edge Node (Local Workstation):** Executes Large Language Models (Ollama) locally via GPU hardware, maintaining a secure connection to the cloud infrastructure through an Ngrok reverse tunnel.
+- **Cloud Node on AWS EC2:** Hosts the Client Interface, API, Kafka Cluster and SQL Server backend.
+- **Edge Node on a Local Workstation:** Executes Large Language Models like Ollama locally via GPU hardware, maintaining a secure connection to the cloud infrastructure through an Ngrok reverse tunnel.
 
 ### Technology Stack
 * **Frontend:** Vanilla HTML/JS served via Nginx
 * **Backend:** .NET 8 ASP.NET Core API
 * **Event Streaming:** Confluent Kafka
-* **Database:** SQL Server 2022 (Vector Search and Temporal Decay Stored Procedures)
-* **AI Engine:** Semantic Kernel and Ollama (`llama3.2:3b` for chat generation, `nomic-embed-text` for vector embeddings)
-* **CI/CD:** GitHub Actions (Automated Docker Compose deployments to AWS)
+* **Database:** SQL Server 2022 utilizing Vector Search and Temporal Decay Stored Procedures
+* **AI Engine:** Semantic Kernel and Ollama utilizing llama3.2:3b for chat generation and nomic-embed-text for vector embeddings
+* **CI/CD:** GitHub Actions for Automated Docker Compose deployments to AWS
 
 ---
 
 ## System Workflow
 
-1. **Data Ingestion (`Rag.Producer`):** A background service continuously aggregates the latest news from internet RSS feeds (CNBC, BBC and NYT) and publishes the raw payload to a Kafka topic.
-2. **Vector Generation (`Rag.Api/IngestionWorker`):** A consumer service listens to the Kafka topic. Upon receiving a new article, the service transmits the text payload to the local Ollama instance via the Ngrok tunnel to generate a 768-dimensional Vector Embedding.
+1. **Data Ingestion:** A background service continuously aggregates the latest news from internet RSS feeds like CNBC, BBC and NYT, then publishes the raw payload to a Kafka topic.
+2. **Vector Generation:** A consumer service listens to the Kafka topic. Upon receiving a new article, the service transmits the text payload to the local Ollama instance via the Ngrok tunnel to generate a 768-dimensional Vector Embedding.
 3. **Persistence:** The vector embedding and corresponding news text are persisted in the SQL Server database.
 4. **Retrieval and Generation:** When a query is initiated via the client interface, the API embeds the query, executes a Cosine Similarity search against the SQL database and applies a Temporal Decay algorithm to appropriately weight recent news. The retrieved context is then provided to the local LLM to generate the final response.
 
@@ -31,8 +31,8 @@ This project leverages a hybrid deployment model to optimize computational costs
 
 ## Deployment Instructions
 
-### 1. Edge Node Initialization (Ollama)
-Ensure [Ollama](https://ollama.com/) is installed and provisioned with the necessary models:
+### 1. Edge Node Initialization for Ollama
+Ensure Ollama is installed and provisioned with the necessary models:
 ```bash
 ollama pull llama3.2:3b
 ollama pull nomic-embed-text
@@ -62,4 +62,4 @@ docker restart rag-api
 ```
 
 ### 4. Continuous Deployment Pipeline
-This repository is configured with a GitHub Actions workflow (`.github/workflows/deploy.yml`). Any commits pushed to the `main` branch will automatically initiate an SSH session into the AWS EC2 instance and redeploy the latest Docker containers, utilizing configured health checks to ensure zero-downtime rollouts.
+This repository is configured with a GitHub Actions workflow located at .github/workflows/deploy.yml. Any commits pushed to the main branch will automatically initiate an SSH session into the AWS EC2 instance and redeploy the latest Docker containers, utilizing configured health checks to ensure zero-downtime rollouts.
