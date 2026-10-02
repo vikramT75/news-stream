@@ -13,9 +13,9 @@ CREATE TABLE DocumentChunks (
 );
 GO
 
-CREATE PROCEDURE sp_SearchWithTemporalDecay
+CREATE OR ALTER PROCEDURE sp_SearchWithTemporalDecay
     @QueryVector NVARCHAR(MAX),
-    @DecayRate FLOAT = 0.05,
+    @DecayRate FLOAT = 0.01,
     @TopK INT = 5
 AS
 BEGIN
