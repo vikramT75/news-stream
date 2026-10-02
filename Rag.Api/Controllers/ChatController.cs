@@ -49,6 +49,7 @@ namespace Rag.Api.Controllers
                 var contextText = string.Join("\n\n", contextChunks.Select(c => $"[Time: {c.IngestionTime:HH:mm:ss} | Source: {c.Source}]\n{c.Content}"));
 
                 var systemPrompt = $@"You are a real-time global news assistant. 
+Today's date is {DateTime.UtcNow:yyyy-MM-dd}. The context provided contains genuine, breaking news articles from today.
 Answer the user's question in a highly detailed, comprehensive manner using ONLY the latest information provided below.
 If multiple articles match, synthesize them into a thorough, multi-paragraph report. Do not hallucinate data outside the context.
 Because we apply a temporal decay algorithm, the context below is guaranteed to be the freshest and most relevant.
